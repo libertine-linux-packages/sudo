@@ -1,0 +1,229 @@
+# This file is part of libertine linux's package sudo. It is subject to the license terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/sudo/master/COPYRIGHT. No part of libertine linux's package sudo, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
+# Copyright © 2016 The developers of libertine linux's package sudo. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/sudo/master/COPYRIGHT.
+
+
+variant=upstream
+
+depends zlib audit_userspace_libaudit
+
+depends build_ccache
+build_needs ccache
+
+depends build_gnumake
+build_needs make
+
+depends build_slibtool
+build_needs clibtool-static libtoolize realpath
+
+depends build_perl
+build_needs perl
+
+depends build_autoconf
+build_needs autoconf autoheader autom4te autoreconf autoscan autoupdate ifnames
+
+depends build_automake
+build_needs automake aclocal
+
+depends build_gnum4
+build_needs m4
+
+depends build_musl_cross_make_host
+build_needs "$libertine_host"-cc "$libertine_host"-gcc "$libertine_host"-ar "$libertine_host"-ld "$libertine_host"-ranlib "$libertine_host"-strip
+
+depends build_busybox
+build_needs expr install sort ls sleep rmdir dirname basename 
+
+depends build_gnuconfig
+
+build_needs sed rm ln cp cat
+libertine_compile_sudo()
+{
+	# ? http://www.openbsm.org ?
+	pushd "$(libertine_public_sourcePath)"
+		
+		libertine_public_autoconf_replaceWithKnownVersionOfConfigGuess ./
+		libertine_public_autoconf_replaceWithKnownVersionOfConfigSub ./
+		libertine_public_autoconf_replaceWithKnownVersionOfInstallSh ./
+		libertine_public_autoconf_replaceWithKnownVersionOfMkinstalldirs ./
+		
+		libertine_public_populateInputSysroot zlib audit_userspace_libaudit
+		
+		libertine_public_autoconf_adjustConfigureAcToRemoveGnuTextCruftBeforeAutoconf
+
+		libtoolize --install --force --verbose
+		autoreconf --install --force --verbose
+
+		#--disable-root-mailer   Don't run the mailer as root, run as the user
+     	#--disable-shadow        Never use shadow passwords
+		#--without-passwd
+	 	#--enable-asan
+		#--with-ldap=SYSROOT
+		#--with-ldap-conf-file=PATH
+		#--with-ldap-secret-file=PATH
+		
+		# Equivalent to --disable-root-sudo; see packages/sudo/source/INSTALL
+		libertine_sudo_disableRootSudo='true'
+
+		# Equivalent to --with-badpri; see packages/sudo/source/INSTALL
+		libertine_sudo_logFailuresPriority='alert'
+
+		# Equivalent to --with-goodpri; see packages/sudo/source/INSTALL
+		libertine_sudo_logSuccessesPriority='info'
+
+		# Equivalent to --with-password-timeout; see packages/sudo/source/INSTALL; use 0 for never
+		libertine_sudo_passwordTimeoutMinutes='1'
+
+		# Equivalent to --with-password-tries; see packages/sudo/source/INSTALL
+		libertine_sudo_passwordTries='3'
+
+		# Equivalent to --with-timeout; see packages/sudo/source/INSTALL; use 0 to always prompt
+		libertine_sudo_timoutMinutes='0'
+
+		# Equivalent to --with-umask; see packages/sudo/source/INSTALL
+		libertine_sudo_umask='0022'
+				
+		set --
+		if core_variable_isSet libertine_sudo_enableRootSudo; then
+			if $libertine_sudo_enableRootSudo; then
+				:
+			else
+				set -- "$@" --disable-root-sudo
+			fi
+		else
+			set -- "$@" --disable-root-sudo
+		fi
+		
+		if core_variable_isSet libertine_sudo_logFailuresPriority; then
+			set -- "$@" --with-badpri="$libertine_sudo_logFailuresPriority"
+		else
+			set -- "$@" --with-badpri=alert
+		fi
+		
+		if core_variable_isSet libertine_sudo_logSuccessesPriority; then
+			set -- "$@" --with-goodpri="$libertine_sudo_logSuccessesPriority"
+		else
+			set -- "$@" --with-goodpri=info
+		fi
+		
+		if core_variable_isSet libertine_sudo_logSuccessesPriority; then
+			set -- "$@" --with-goodpri="$libertine_sudo_logSuccessesPriority"
+		else
+			set -- "$@" --with-goodpri=info
+		fi
+		
+		if core_variable_isSet libertine_sudo_passwordTimeoutMinutes; then
+			set -- "$@" --with-password-timeout="$libertine_sudo_passwordTimeoutMinutes"
+		else
+			set -- "$@" --with-password-timeout=1
+		fi
+		
+		if core_variable_isSet libertine_sudo_passwordTries; then
+			set -- "$@" --with-password-tries="$libertine_sudo_passwordTries"
+		else
+			set -- "$@" --with-passwd-tries=1
+		fi
+		
+		if core_variable_isSet libertine_sudo_timoutMinutes; then
+			set -- "$@" --with-timeout="$libertine_sudo_timoutMinutes"
+		else
+			set -- "$@" --with-timeout=0
+		fi
+		
+		if core_variable_isSet libertine_sudo_umask; then
+			set -- "$@" --with-umask="$libertine_sudo_umask"
+		else
+			set -- "$@" --with-umask=0
+		fi
+		
+		set -- "$@" \
+			--with-rundir=/var/run \
+			--with-vardir=/var/lib \
+			--with-tzdir=/etc \
+			--enable-log-host \
+			--enable-noargs-shell \
+			--enable-shell-sets-home \
+			--disable-path-info \
+			--enable-zlib="$(libertine_public_outputHostSysrootPath zlib)" \
+			--enable-env-reset \
+			--enable-pie \
+			--disable-poll \
+			--disable-nls \
+			--disable-rpath \
+			--enable-static-sudoers \
+			--disable-shared-libutil \
+			--disable-shared \
+			--enable-static \
+			--enable-fast-install \
+			--disable-pam-session \
+			--with-linux-audit \
+			--with-nsswitch=no \
+			--with-editor=/usr/bin/vi \
+			--with-ignore-dot \
+			--with-iologdir=/var/log/sudo/io \
+			--without-lecture \
+			--with-logfac=authpriv \
+			--with-logging=syslog \
+			--with-loglen=0 \
+			--with-logpath=/var/log/sudo/sudo.log \
+			--without-mail-if-no-user \
+			--with-passprompt="sudo requires password for user '%u' to run as priveledged user '%U': " \
+			--with-runas-default=root \
+			--with-secure-path=/usr/sbin:/usr/bin \
+			--without-sendmail \
+			--with-sudoers-mode=0400 \
+			--with-sudoers-uid=0 \
+			--with-sudoers-gid=0 \
+			--disable-path-info
+						
+		SENDMAILPROG=/usr/sbin/sendmail \
+		VIPROG=/usr/bin/vi \
+		MVPROG=/usr/bin/mv \
+		BSHELLPROG=/usr/bin/sh \
+		libertine_public_autoconf_modernAutoconfConfigure "$@"
+		
+		cat >>config.h <<-EOF
+			// ./configure uses a broken test
+			#define HAVE___FUNC__ 1
+			
+			#define HAVE___PROGNAME 1
+		EOF
+		
+		libertine_public_autoconf_removePoToRemoveGnuTextCruftBeforeMake
+		
+		sed -i \
+			-e 's/REPLAY_OBJS = /REPLAY_OBJS = timestr.o /g' \
+			-e 's/timestr.lo \$(LIBS)/$(LIBS)/g' \
+			plugins/sudoers/Makefile
+		
+		sed -i \
+			-e "s/INSTALL_BACKUP='\$(INSTALL_BACKUP)' \$(LIBTOOL) \$(LTFLAGS) --mode=install //g" \
+			plugins/sudoers/Makefile \
+			src/Makefile
+		
+		libertine_public_make
+		
+		
+		# We need to 'fake' chown and chgrp
+		libertine_public_addOrReplaceBinaryInPathWithSwallow chown
+		libertine_public_addOrReplaceBinaryInPathWithSwallow chgrp
+		
+		# install uses libtool to install, resulting in libtool wrappers
+		libertine_public_make DESTDIR="$(libertine_public_outputHostSysrootPath)" install
+				
+		cp -f "$(libertine_public_sourcePath)"/src/.libs/sudo "$(libertine_public_outputHostSysrootPath)"/usr/bin
+		cp -f "$(libertine_public_sourcePath)"/plugins/sudoers/.libs/sudoreplay "$(libertine_public_outputHostSysrootPath)"/usr/bin
+		cp -f "$(libertine_public_sourcePath)"/plugins/sudoers/.libs/visudo "$(libertine_public_outputHostSysrootPath)"/usr/sbin
+		
+	popd
+	
+	local destinationFolderPath="$(libertine_public_outputInitramfsPath)"
+	
+	libertine_public_copy_filesystem "$(libertine_public_sourcePath)"/../filesystem/ "$destinationFolderPath"/
+	
+	cp -f "$(libertine_public_sourcePath)"/../initramfs.contents "$(libertine_public_outputInitramfsContentsFilePath)"
+	
+	libertine_public_installAndStripBinariesIn bin sudo
+	#libertine_public_installAndStripBinariesIn bin sudoreplay
+	#libertine_public_installAndStripBinariesIn sbin visudo
+	#ln -s sudo "$destinationFolderPath"/usr/bin/sudoedit
+}

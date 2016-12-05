@@ -1,0 +1,2 @@
+file /usr/bin/sudo initramfs/usr/bin/sudo 4755 0 0
+file /etc/sudoers initramfs/etc/sudoers 0400 0 0
