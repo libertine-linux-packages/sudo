@@ -30,6 +30,9 @@ build_needs m4
 depends build_musl_cross_make_host
 build_needs "$libertine_host"-cc "$libertine_host"-gcc "$libertine_host"-ar "$libertine_host"-ld "$libertine_host"-ranlib "$libertine_host"-strip
 
+depends build_paxctl
+build_needs paxctl
+
 depends build_busybox
 build_needs expr install sort ls sleep rmdir dirname basename
 
@@ -230,8 +233,8 @@ libertine_compile_sudo()
 	
 	cp -f "$(libertine_public_sourcePath)"/../initramfs.contents "$(libertine_public_outputInitramfsContentsFilePath)"
 	
-	libertine_public_installAndStripBinariesIn bin sudo
-	#libertine_public_installAndStripBinariesIn bin sudoreplay
-	#libertine_public_installAndStripBinariesIn sbin visudo
+	libertine_public_installAndStripBinaryIn bin sudo
+	#libertine_public_installAndStripBinaryIn bin sudoreplay
+	#libertine_public_installAndStripBinaryIn sbin visudo
 	#ln -s sudo "$destinationFolderPath"/usr/bin/sudoedit
 }
